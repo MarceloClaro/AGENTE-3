@@ -1,12 +1,14 @@
 import json
 import os
 from typing import Tuple
+
 import streamlit as st
 from groq import Groq
 
 st.set_page_config(layout="wide")
 
 FILEPATH = "agents.json"
+USER_FILEPATH = "user_agents.json"
 MODEL_MAX_TOKENS = {
     'mixtral-8x7b-32768': 32768,
     'llama3-70b-8192': 8192,
@@ -16,7 +18,7 @@ MODEL_MAX_TOKENS = {
 }
 
 def load_agent_options() -> list:
-    agent_options = ['Criar (ou escolher) um especialista...']
+    agent_options = ['Escolher um especialista...']
     if os.path.exists(FILEPATH):
         with open(FILEPATH, 'r') as file:
             try:
@@ -26,8 +28,24 @@ def load_agent_options() -> list:
                 st.error("Erro ao ler o arquivo de agentes. Por favor, verifique o formato.")
     return agent_options
 
+def load_user_agents(filepath: str):
+    with open(FILEPATH, "r") as file:
+        user_agents = json.load(file)
+    return user_agents
+
+def upload_user_agents_file() -> str:
+    uploaded_file = st.file_uploader("Faça upload do arquivo JSON contendo os agentes do usuário, ele substitui a lista de agentes existente pelos agentes do arquivo:", type=["json"])
+    if uploaded_file is not None:
+        with open(USER_FILEPATH, "wb") as file:
+            file.write(uploaded_file.getvalue())
+        return USER_FILEPATH
+    return ""
+
 def get_max_tokens(model_name: str) -> int:
     return MODEL_MAX_TOKENS.get(model_name, 4096)
+
+def refresh_page():
+    st.rerun()
 
 def save_expert(expert_title: str, expert_description: str):
     with open(FILEPATH, 'r+') as file:
@@ -59,7 +77,7 @@ def fetch_assistant_response(user_input: str, model_name: str, temperature: floa
             )
             return completion.choices[0].message.content
 
-        if agent_selection == "Criar (ou escolher) um especialista...":
+        if agent_selection == "Escolher um especialista...":
             phase_one_prompt = f"Atue como engenheiro de prompt especialista. Analise a seguinte entrada para determinar o título e as características do melhor especialista para responder à pergunta. Comece a resposta com o título do especialista seguido de um ponto ['.'], depois forneça uma descrição concisa desse especialista: {user_input}"
             phase_one_response = get_completion(phase_one_prompt)
             first_period_index = phase_one_response.find(".")
@@ -76,7 +94,7 @@ def fetch_assistant_response(user_input: str, model_name: str, temperature: floa
                 else:
                     raise ValueError("Especialista selecionado não encontrado no arquivo.")
 
-        phase_two_prompt = f"Atue como {expert_title}, um especialista no assunto, e forneça uma resposta completa e bem fundamentada para a seguinte pergunta: {user_input}. Certifique-se de incluir referências e citações reais em sua resposta."
+        phase_two_prompt = f"Atue como {expert_title}, um especialista no assunto, e forneça uma resposta completa e bem formatada para a seguinte pergunta: {user_input}"
         phase_two_response = get_completion(phase_two_prompt)
 
     except Exception as e:
@@ -104,7 +122,7 @@ def refine_response(expert_title: str, phase_two_response: str, user_input: str,
             )
             return completion.choices[0].message.content
 
-        refine_prompt = f"Atue como {expert_title}, um especialista no assunto. Aqui está a resposta original à pergunta '{user_input}': {phase_two_response}\n\nPor favor, revise e refine completamente esta resposta, fazendo melhorias e abordando quaisquer deficiências. Retorne uma versão atualizada da resposta que incorpore seus refinamentos. Certifique-se de incluir referências e citações reais em sua resposta."
+        refine_prompt = f"Atue como {expert_title}, um especialista no assunto. Aqui está a resposta original à pergunta '{user_input}': {phase_two_response}\n\nPor favor, revise e refine completamente esta resposta, fazendo melhorias e abordando quaisquer deficiências. Retorne uma versão atualizada da resposta que incorpore seus refinamentos."
         
         refined_response = get_completion(refine_prompt)
         return refined_response
@@ -115,13 +133,16 @@ def refine_response(expert_title: str, phase_two_response: str, user_input: str,
 
 agent_options = load_agent_options()
 
-st.title("Agentes Experts III")
+st.title("Agentes Experts II")
 st.write("Digite sua solicitação para que ela seja respondida pelo especialista ideal.")
 
 col1, col2 = st.columns(2)
 
 with col1:
     user_input = st.text_area("Por favor, insira sua solicitação:", "", key="entrada_usuario")
+    user_agents_filepath = upload_user_agents_file()
+    if user_agents_filepath:
+        agent_options = load_user_agents(user_agents_filepath)
     agent_selection = st.selectbox("Escolha um Especialista", options=agent_options, index=0, key="selecao_agente")
     model_name = st.selectbox("Escolha um Modelo", list(MODEL_MAX_TOKENS.keys()), index=0, key="nome_modelo")
     temperature = st.slider("Nível de Criatividade", min_value=0.0, max_value=1.0, value=0.0, step=0.01, key="temperatura")
