@@ -18,7 +18,7 @@ MODEL_MAX_TOKENS = {
 }
 
 def load_agent_options() -> list:
-    agent_options = ['Criar (ou escolher) um especialista...']
+    agent_options = ['Escolher um especialista...']
     if os.path.exists(FILEPATH):
         with open(FILEPATH, 'r') as file:
             try:
@@ -77,7 +77,7 @@ def fetch_assistant_response(user_input: str, model_name: str, temperature: floa
             )
             return completion.choices[0].message.content
 
-        if agent_selection == "Criar (ou escolher) um especialista...":
+        if agent_selection == "Escolher um especialista...":
             phase_one_response = get_completion(phase_one_prompt)
             first_period_index = phase_one_response.find(".")
             expert_title = phase_one_response[:first_period_index].strip()
@@ -130,7 +130,7 @@ def refine_response(expert_title: str, phase_two_response: str, user_input: str,
 
 agent_options = load_agent_options()
 
-st.title("Agentes Experts")
+st.title("Agentes Experts III")
 st.write("Digite sua solicitação para que ela seja respondida pelo especialista ideal.")
 
 col1, col2 = st.columns(2)
