@@ -1,16 +1,17 @@
 import json
-import streamlit as st
 import os
-from typing import Tuple, Optional
+from typing import Tuple
+
+import streamlit as st
 from groq import Groq
-import toml
 
 st.set_page_config(layout="wide")
 
 FILEPATH = "agents.json"
+USER_FILEPATH = "user_agents.json"
 MODEL_MAX_TOKENS = {
     'mixtral-8x7b-32768': 32768,
-    'llama3-70b-8192': 8192, 
+    'llama3-70b-8192': 8192,
     'llama3-8b-8192': 8192,
     'llama2-70b-4096': 4096,
     'gemma-7b-it': 8192,
@@ -27,6 +28,19 @@ def load_agent_options() -> list:
                 st.error("Erro ao ler o arquivo de agentes. Por favor, verifique o formato.")
     return agent_options
 
+def load_user_agents(filepath: str):
+    with open(FILEPATH, "r") as file:
+        user_agents = json.load(file)
+    return user_agents
+
+def upload_user_agents_file() -> str:
+    uploaded_file = st.file_uploader("Faça upload do arquivo JSON contendo os agentes do usuário:", type=["json"])
+    if uploaded_file is not None:
+        with open(USER_FILEPATH, "wb") as file:
+            file.write(uploaded_file.getvalue())
+        return USER_FILEPATH
+    return ""
+
 def get_max_tokens(model_name: str) -> int:
     return MODEL_MAX_TOKENS.get(model_name, 4096)
 
@@ -41,7 +55,7 @@ def save_expert(expert_title: str, expert_description: str):
         json.dump(agents, file, indent=4)
         file.truncate()
 
-def fetch_assistant_response(user_input: str, model_name: str, temperature: float, agent_selection: str, groq_api_key: str) -> Tuple[str, str]:
+def fetch_assistant_response(user_input: str, model_name: str, temperature: float, agent_selection: str, groq_api_key: str, phase_one_prompt: str) -> Tuple[str, str]:
     phase_two_response = ""
     expert_title = ""
 
@@ -64,7 +78,6 @@ def fetch_assistant_response(user_input: str, model_name: str, temperature: floa
             return completion.choices[0].message.content
 
         if agent_selection == "Criar (ou escolher) um especialista...":
-            phase_one_prompt = f"Atue como engenheiro de prompt especialista. Analise a seguinte entrada para determinar o título e as características do melhor especialista para responder à pergunta. Comece a resposta com o título do especialista seguido de um ponto ['.'], depois forneça uma descrição concisa desse especialista: {user_input}"
             phase_one_response = get_completion(phase_one_prompt)
             first_period_index = phase_one_response.find(".")
             expert_title = phase_one_response[:first_period_index].strip()
@@ -89,7 +102,7 @@ def fetch_assistant_response(user_input: str, model_name: str, temperature: floa
 
     return expert_title, phase_two_response
 
-def refine_response(expert_title: str, phase_two_response: str, user_input: str, model_name: str, temperature: float, groq_api_key: str) -> str:
+def refine_response(expert_title: str, phase_two_response: str, user_input: str, model_name: str, temperature: float, groq_api_key: str, refine_prompt: str) -> str:
     try:
         client = Groq(api_key=groq_api_key)
 
@@ -108,8 +121,6 @@ def refine_response(expert_title: str, phase_two_response: str, user_input: str,
             )
             return completion.choices[0].message.content
 
-        refine_prompt = f"Atue como {expert_title}, um especialista no assunto. Aqui está a resposta original à pergunta '{user_input}': {phase_two_response}\n\nPor favor, revise e refine completamente esta resposta, fazendo melhorias e abordando quaisquer deficiências. Retorne uma versão atualizada da resposta que incorpore seus refinamentos."
-        
         refined_response = get_completion(refine_prompt)
         return refined_response
 
@@ -126,6 +137,9 @@ col1, col2 = st.columns(2)
 
 with col1:
     user_input = st.text_area("Por favor, insira sua solicitação:", "", key="entrada_usuario")
+    user_agents_filepath = upload_user_agents_file()
+    if user_agents_filepath:
+        agent_options = load_user_agents(user_agents_filepath)
     agent_selection = st.selectbox("Escolha um Especialista", options=agent_options, index=0, key="selecao_agente")
     model_name = st.selectbox("Escolha um Modelo", list(MODEL_MAX_TOKENS.keys()), index=0, key="nome_modelo")
     temperature = st.slider("Nível de Criatividade", min_value=0.0, max_value=1.0, value=0.0, step=0.01, key="temperatura")
@@ -150,13 +164,15 @@ with col2:
     container_saida = st.container()
 
     if fetch_clicked:
-        st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente = fetch_assistant_response(user_input, model_name, temperature, agent_selection, groq_api_key)
+        phase_one_prompt = st.text_area("Prompt da Fase Um", "Texto editável para a Fase Um...")
+        st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente = fetch_assistant_response(user_input, model_name, temperature, agent_selection, groq_api_key, phase_one_prompt)
         st.session_state.resposta_original = st.session_state.resposta_assistente
         st.session_state.resposta_refinada = ""
 
     if refine_clicked:
         if st.session_state.resposta_assistente:
-            st.session_state.resposta_refinada = refine_response(st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente, user_input, model_name, temperature, groq_api_key)
+            refine_prompt = st.text_area("Prompt de Refinamento", "Texto editável para o Refinamento...")
+            st.session_state.resposta_refinada = refine_response(st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente, user_input, model_name, temperature, groq_api_key, refine_prompt)
         else:
             st.warning("Por favor, busque uma resposta antes de refinar.")
 
