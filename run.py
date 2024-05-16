@@ -1,25 +1,12 @@
 import json
 import os
 from typing import Tuple
-
 import streamlit as st
 from groq import Groq
 
-# Importa a biblioteca json para lidar com arquivos json
-# Importa a biblioteca os para interagir com o sistema operacional
-# Importa o tipo Tuple do pacote typing para definir funções que retornam tuplas
-
-# Importa a biblioteca streamlit para criar um aplicativo web interativo
-# Importa a classe Groq para interagir com a API do Groq
-
-# Define a largura da página como "wide"
 st.set_page_config(layout="wide")
 
-# Define constantes para os caminhos dos arquivos json
 FILEPATH = "agents.json"
-USER_FILEPATH = "user_agents.json"
-
-# Define um dicionário que mapeia nomes de modelos para o número máximo de tokens
 MODEL_MAX_TOKENS = {
     'mixtral-8x7b-32768': 32768,
     'llama3-70b-8192': 8192,
@@ -28,9 +15,8 @@ MODEL_MAX_TOKENS = {
     'gemma-7b-it': 8192,
 }
 
-# Define a função load_agent_options que carrega as opções de agentes a partir do arquivo agents.json
 def load_agent_options() -> list:
-    agent_options = ['Escolher um especialista...']
+    agent_options = ['Criar (ou escolher) um especialista...']
     if os.path.exists(FILEPATH):
         with open(FILEPATH, 'r') as file:
             try:
@@ -40,30 +26,12 @@ def load_agent_options() -> list:
                 st.error("Erro ao ler o arquivo de agentes. Por favor, verifique o formato.")
     return agent_options
 
-# Define a função load_user_agents que carrega os agentes do usuário a partir do arquivo user_agents.json
-def load_user_agents(filepath: str):
-    with open(FILEPATH, "r") as file:
-        user_agents = json.load(file)
-    return user_agents
-
-# Define a função upload_user_agents_file que permite que o usuário faça upload de um arquivo json contendo os agentes do usuário
-def upload_user_agents_file() -> str:
-    uploaded_file = st.file_uploader("Faça upload do arquivo JSON contendo os agentes do usuário, ele substitui a lista de agentes existente pelos agentes do arquivo:", type=["json"])
-    if uploaded_file is not None:
-        with open(USER_FILEPATH, "wb") as file:
-            file.write(uploaded_file.getvalue())
-        return USER_FILEPATH
-    return ""
-
-# Define a função get_max_tokens que retorna o número máximo de tokens para um modelo dado
 def get_max_tokens(model_name: str) -> int:
     return MODEL_MAX_TOKENS.get(model_name, 4096)
 
-# Define a função refresh_page que atualiza a página
 def refresh_page():
-    st.rerun()
+    st.experimental_rerun()
 
-# Define a função save_expert que salva um especialista no arquivo agents.json
 def save_expert(expert_title: str, expert_description: str):
     with open(FILEPATH, 'r+') as file:
         agents = json.load(file) if os.path.getsize(FILEPATH) > 0 else []
@@ -72,7 +40,51 @@ def save_expert(expert_title: str, expert_description: str):
         json.dump(agents, file, indent=4)
         file.truncate()
 
-# Define a função fetch_assistant_response que faz uma solicitação à API do Groq para obter uma resposta a uma pergunta
+def get_references_from_json(file_contents):
+    try:
+        references = json.loads(file_contents)
+        return references
+    except json.JSONDecodeError:
+        st.error("Erro ao ler o arquivo de referências. Por favor, verifique o formato.")
+        return []
+
+def refine_response(expert_title: str, phase_two_response: str, user_input: str, model_name: str, temperature: float, groq_api_key: str, references_file):
+    references = get_references_from_json(references_file)
+    if not references:
+        return ""
+
+    try:
+        client = Groq(api_key=groq_api_key)
+
+        def get_completion(prompt: str) -> str:
+            completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "Você é um assistente útil."},
+                    {"role": "user", "content": prompt},
+                ],
+                model=model_name,
+                temperature=temperature,
+                max_tokens=get_max_tokens(model_name),
+                top_p=1,
+                stop=None,
+                stream=False
+            )
+            return completion.choices[0].message.content
+
+        refine_prompt = f"Atue como {expert_title}, um especialista no assunto. Aqui está a resposta original à pergunta '{user_input}': {phase_two_response}\n\nPor favor, revise e refine completamente esta resposta, fazendo melhorias e abordando quaisquer deficiências. Retorne uma versão atualizada da resposta que incorpore seus refinamentos. Certifique-se de incluir referências e citações reais em sua resposta."
+
+        # Adiciona as referências ao prompt
+        refine_prompt += "\n\nReferências:\n"
+        for reference in references:
+            refine_prompt += f"- {reference['title']}: {reference['text']}\n"
+
+        refined_response = get_completion(refine_prompt)
+        return refined_response
+
+    except Exception as e:
+        st.error(f"Ocorreu um erro durante o refinamento: {e}")
+        return ""
+
 def fetch_assistant_response(user_input: str, model_name: str, temperature: float, agent_selection: str, groq_api_key: str) -> Tuple[str, str]:
     phase_two_response = ""
     expert_title = ""
@@ -95,7 +107,7 @@ def fetch_assistant_response(user_input: str, model_name: str, temperature: floa
             )
             return completion.choices[0].message.content
 
-        if agent_selection == "Escolher um especialista...":
+        if agent_selection == "Criar (ou escolher) um especialista...":
             phase_one_prompt = f"Atue como engenheiro de prompt especialista. Analise a seguinte entrada para determinar o título e as características do melhor especialista para responder à pergunta. Comece a resposta com o título do especialista seguido de um ponto ['.'], depois forneça uma descrição concisa desse especialista: {user_input}"
             phase_one_response = get_completion(phase_one_prompt)
             first_period_index = phase_one_response.find(".")
@@ -121,92 +133,76 @@ def fetch_assistant_response(user_input: str, model_name: str, temperature: floa
 
     return expert_title, phase_two_response
 
-# Define a função refine_response que refina a resposta obtida a partir da função fetch_assistant_response
-def refine_response(expert_title: str, phase_two_response: str, user_input: str, model_name: str, temperature: float, groq_api_key: str) -> str:
-    try:
-        client = Groq(api_key=groq_api_key)
+def main():
+    agent_options = load_agent_options()
 
-        def get_completion(prompt: str) -> str:
-            completion = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": "Você é um assistente útil."},
-                    {"role": "user", "content": prompt},
-                ],
-                model=model_name,
-                temperature=temperature,
-                max_tokens=get_max_tokens(model_name),
-                top_p=1,
-                stop=None,
-                stream=False
-            )
-            return completion.choices[0].message.content
+    st.title("Agentes Experts")
+    st.write("Digite sua solicitação para que ela seja respondida pelo especialista ideal.")
 
-        refine_prompt = f"Atue como {expert_title}, um especialista no assunto. Aqui está a resposta original à pergunta '{user_input}': {phase_two_response}\n\nPor favor, revise e refine completamente esta resposta, fazendo melhorias e abordando quaisquer deficiências. Retorne uma versão atualizada da resposta que incorpore seus refinamentos."
+    col1, col2 = st.columns(2)
 
-        refined_response = get_completion(refine_prompt)
-        return refined_response
+    with col1:
+        user_input = st.text_area("Por favor, insira sua solicitação:", "", key="entrada_usuario")
+        agent_selection = st.selectbox("Escolha um Especialista", options=agent_options, index=0, key="selecao_agente")
+        model_name = st.selectbox("Escolha um Modelo", list(MODEL_MAX_TOKENS.keys()), index=0, key="nome_modelo")
+        temperature = st.slider("Nível de Criatividade", min_value=0.0, max_value=1.0, value=0.0, step=0.01, key="temperatura")
+        groq_api_key = st.text_input("Chave da API Groq:", key="groq_api_key")
+        max_tokens = get_max_tokens(model_name)
+        st.write(f"Número Máximo de Tokens para o modelo selecionado: {max_tokens}")
 
-    except Exception as e:
-        st.error(f"Ocorreu um erro durante o refinamento: {e}")
-        return ""
+        references_file = st.file_uploader("Upload de arquivo JSON com referências", type="json")
 
-# Carrega as opções de agentes a partir do arquivo agents.json
-agent_options = load_agent_options()
+        fetch_clicked = st.button("Buscar Resposta")
+        refine_clicked = st.button("Refinar Resposta")
+        refresh_clicked = st.button("Atualizar")
 
-# Cria o aplicativo web interativo
-st.title("Agentes Experts III")
-st.write("Digite sua solicitação para que ela seja respondida pelo especialista ideal.")
+    with col2:
+        if 'resposta_assistente' not in st.session_state:
+            st.session_state.resposta_assistente = ""
+        if 'descricao_especialista_ideal' not in st.session_state:
+            st.session_state.descricao_especialista_ideal = ""
+        if 'resposta_refinada' not in st.session_state:
+            st.session_state.resposta_refinada = ""
+        if 'resposta_original' not in st.session_state:
+            st.session_state.resposta_original = ""
 
-# Divide a página em duas colunas
-col1, col2 = st.columns(2)
+        container_saida = st.container()
 
-# Define widgets na coluna esquerda
-with col1:
-    user_input = st.text_area("Por favor, insira sua solicitação:", "", key="entrada_usuario")
-    user_agents_filepath = upload_user_agents_file()
-    if user_agents_filepath:
-        agent_options = load_user_agents(user_agents_filepath)
-    agent_selection = st.selectbox("Escolha um Especialista", options=agent_options, index=0, key="selecao_agente")
-    model_name = st.selectbox("Escolha um Modelo", list(MODEL_MAX_TOKENS.keys()), index=0, key="nome_modelo")
-    temperature = st.slider("Nível de Criatividade", min_value=0.0, max_value=1.0, value=0.0, step=0.01, key="temperatura")
-    groq_api_key = st.text_input("Chave da API Groq:", key="groq_api_key")
-    max_tokens = get_max_tokens(model_name)
-    st.write(f"Número Máximo de Tokens para o modelo selecionado: {max_tokens}")
+        if fetch_clicked:
+            st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente = fetch_assistant_response(user_input, model_name, temperature, agent_selection, groq_api_key)
+            st.session_state.resposta_original = st.session_state.resposta_assistente
+            st.session_state.resposta_refinada = ""
 
-    fetch_clicked = st.button("Buscar Resposta")
-    refine_clicked = st.button("Refinar Resposta")
-    refresh_clicked = st.button("Atualizar")
+        if refine_clicked:
+            if st.session_state.resposta_assistente:
+                if references_file is not None:
+                    references_file_contents = references_file.getvalue()
+                    st.session_state.resposta_refinada = refine_response(st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente, user_input, model_name, temperature, groq_api_key, references_file_contents)
+                else:
+                    st.warning("Por favor, faça o upload do arquivo com referências antes de refinar.")
+            else:
+                st.warning("Por favor, busque uma resposta antes de refinar.")
 
-# Define widgets na coluna direita
-with col2:
-    if 'resposta_assistente' not in st.session_state:
-        st.session_state.resposta_assistente = ""
-    if 'descricao_especialista_ideal' not in st.session_state:
-        st.session_state.descricao_especialista_ideal = ""
-    if 'resposta_refinada' not in st.session_state:
-        st.session_state.resposta_refinada = ""
-    if 'resposta_original' not in st.session_state:
-        st.session_state.resposta_original = ""
+        with container_saida:
+            st.write(f"**Análise do Especialista:**\n{st.session_state.descricao_especialista_ideal}")
+            st.write(f"\n**Resposta do Especialista:**\n{st.session_state.resposta_original}")
+            if st.session_state.resposta_refinada:
+                st.write(f"\n**Resposta Refinada:**\n{st.session_state.resposta_refinada}")
 
-    container_saida = st.container()
+    if refresh_clicked:
+        st.session_state.clear()
+        st.experimental_rerun()
 
-    if fetch_clicked:
-        st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente = fetch_assistant_response(user_input, model_name, temperature, agent_selection, groq_api_key)
-        st.session_state.resposta_original = st.session_state.resposta_assistente
-        st.session_state.resposta_refinada = ""
+    # Sidebar com manual de uso
+    st.sidebar.title("Manual de Uso")
+    st.sidebar.write("1. Digite sua solicitação na caixa de texto.")
+    st.sidebar.write("2. Escolha um especialista ou crie um novo.")
+    st.sidebar.write("3. Escolha um modelo de resposta.")
+    st.sidebar.write("4. Ajuste o nível de criatividade do modelo.")
+    st.sidebar.write("5. Faça o upload de um arquivo JSON com referências para a resposta.")
+    st.sidebar.write("6. Clique em 'Buscar Resposta' para obter a resposta inicial.")
+    st.sidebar.write("7. Se necessário, refine a resposta com base nas referências e clique em 'Refinar Resposta'.")
+    st.sidebar.write("8. Visualize a análise do especialista, a resposta original e a resposta refinada.")
 
-    if refine_clicked:
-        if st.session_state.resposta_assistente:
-            st.session_state.resposta_refinada = refine_response(st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente, user_input, model_name, temperature, groq_api_key)
-        else:
-            st.warning("Por favor, busque uma resposta antes de refinar.")
-
-    with container_saida:
-        st.write(f"**Análise do Especialista:**\n{st.session_state.descricao_especialista_ideal}")
-        st.write(f"\n**Resposta do Especialista:**\n{st.session_state.resposta_original}")
-        if st.session_state.resposta_refinada:
-            st.write(f"\n**Resposta Refinada:**\n{st.session_state.resposta_refinada}")
-
-if refresh_clicked:
-    st.session_state.clear()
-    st.experimental_rerun()
+if __name__ == "__main__":
+    main()
