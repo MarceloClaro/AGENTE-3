@@ -5,10 +5,21 @@ from typing import Tuple
 import streamlit as st
 from groq import Groq
 
+# Importa a biblioteca json para lidar com arquivos json
+# Importa a biblioteca os para interagir com o sistema operacional
+# Importa o tipo Tuple do pacote typing para definir funções que retornam tuplas
+
+# Importa a biblioteca streamlit para criar um aplicativo web interativo
+# Importa a classe Groq para interagir com a API do Groq
+
+# Define a largura da página como "wide"
 st.set_page_config(layout="wide")
 
+# Define constantes para os caminhos dos arquivos json
 FILEPATH = "agents.json"
 USER_FILEPATH = "user_agents.json"
+
+# Define um dicionário que mapeia nomes de modelos para o número máximo de tokens
 MODEL_MAX_TOKENS = {
     'mixtral-8x7b-32768': 32768,
     'llama3-70b-8192': 8192,
@@ -17,6 +28,7 @@ MODEL_MAX_TOKENS = {
     'gemma-7b-it': 8192,
 }
 
+# Define a função load_agent_options que carrega as opções de agentes a partir do arquivo agents.json
 def load_agent_options() -> list:
     agent_options = ['Escolher um especialista...']
     if os.path.exists(FILEPATH):
@@ -28,11 +40,13 @@ def load_agent_options() -> list:
                 st.error("Erro ao ler o arquivo de agentes. Por favor, verifique o formato.")
     return agent_options
 
+# Define a função load_user_agents que carrega os agentes do usuário a partir do arquivo user_agents.json
 def load_user_agents(filepath: str):
     with open(FILEPATH, "r") as file:
         user_agents = json.load(file)
     return user_agents
 
+# Define a função upload_user_agents_file que permite que o usuário faça upload de um arquivo json contendo os agentes do usuário
 def upload_user_agents_file() -> str:
     uploaded_file = st.file_uploader("Faça upload do arquivo JSON contendo os agentes do usuário, ele substitui a lista de agentes existente pelos agentes do arquivo:", type=["json"])
     if uploaded_file is not None:
@@ -41,12 +55,15 @@ def upload_user_agents_file() -> str:
         return USER_FILEPATH
     return ""
 
+# Define a função get_max_tokens que retorna o número máximo de tokens para um modelo dado
 def get_max_tokens(model_name: str) -> int:
     return MODEL_MAX_TOKENS.get(model_name, 4096)
 
+# Define a função refresh_page que atualiza a página
 def refresh_page():
     st.rerun()
 
+# Define a função save_expert que salva um especialista no arquivo agents.json
 def save_expert(expert_title: str, expert_description: str):
     with open(FILEPATH, 'r+') as file:
         agents = json.load(file) if os.path.getsize(FILEPATH) > 0 else []
@@ -55,6 +72,7 @@ def save_expert(expert_title: str, expert_description: str):
         json.dump(agents, file, indent=4)
         file.truncate()
 
+# Define a função fetch_assistant_response que faz uma solicitação à API do Groq para obter uma resposta a uma pergunta
 def fetch_assistant_response(user_input: str, model_name: str, temperature: float, agent_selection: str, groq_api_key: str) -> Tuple[str, str]:
     phase_two_response = ""
     expert_title = ""
@@ -103,6 +121,7 @@ def fetch_assistant_response(user_input: str, model_name: str, temperature: floa
 
     return expert_title, phase_two_response
 
+# Define a função refine_response que refina a resposta obtida a partir da função fetch_assistant_response
 def refine_response(expert_title: str, phase_two_response: str, user_input: str, model_name: str, temperature: float, groq_api_key: str) -> str:
     try:
         client = Groq(api_key=groq_api_key)
@@ -123,7 +142,7 @@ def refine_response(expert_title: str, phase_two_response: str, user_input: str,
             return completion.choices[0].message.content
 
         refine_prompt = f"Atue como {expert_title}, um especialista no assunto. Aqui está a resposta original à pergunta '{user_input}': {phase_two_response}\n\nPor favor, revise e refine completamente esta resposta, fazendo melhorias e abordando quaisquer deficiências. Retorne uma versão atualizada da resposta que incorpore seus refinamentos."
-        
+
         refined_response = get_completion(refine_prompt)
         return refined_response
 
@@ -131,13 +150,17 @@ def refine_response(expert_title: str, phase_two_response: str, user_input: str,
         st.error(f"Ocorreu um erro durante o refinamento: {e}")
         return ""
 
+# Carrega as opções de agentes a partir do arquivo agents.json
 agent_options = load_agent_options()
 
+# Cria o aplicativo web interativo
 st.title("Agentes Experts III")
 st.write("Digite sua solicitação para que ela seja respondida pelo especialista ideal.")
 
+# Divide a página em duas colunas
 col1, col2 = st.columns(2)
 
+# Define widgets na coluna esquerda
 with col1:
     user_input = st.text_area("Por favor, insira sua solicitação:", "", key="entrada_usuario")
     user_agents_filepath = upload_user_agents_file()
@@ -154,6 +177,7 @@ with col1:
     refine_clicked = st.button("Refinar Resposta")
     refresh_clicked = st.button("Atualizar")
 
+# Define widgets na coluna direita
 with col2:
     if 'resposta_assistente' not in st.session_state:
         st.session_state.resposta_assistente = ""
