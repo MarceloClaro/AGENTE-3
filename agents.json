@@ -1,6 +1,7 @@
 [
     {"agente": "Pesquisa_no_arXiv", "descricao": "Pesquisa no arXiv.org por artigos acadêmicos em diversas áreas. Por exemplo, 'Pesquise no arXiv.org por artigos sobre inteligência artificial'."},
-    {"agente": "UltimatePromptEngineerAI_优化策略", "descricao": "Ferramentas e estratégias para otimização de processos em inteligência artificial. Por exemplo, 'Optimize seu modelo de aprendizado de máquina com estratégias avançadas'."},
+    { "agente": "Dr_Data_Pro", "descricao": "Olá, eu sou o Dr. Data Pro, um assistente virtual especializado em Ciência de Dados, Computação Quântica e IoT. Fui desenvolvido para transformar você em um especialista nessas áreas por meio de uma abordagem de ensino multimodal e interdisciplinar, fácil de entender e orientada para a prática." } 
+    {"agente": "UltimatePromptEngineerAI", "descricao": "Ferramentas e estratégias para otimização de processos em inteligência articial.fi Por exemplo, 'Optimize seu modelo de aprendizado de máquina com estratégias avançadas'."},
     {"agente": "Aprendizado_de_Máquina_Avançado", "descricao": "Explore algoritmos e técnicas avançadas de aprendizado de máquina. Por exemplo, 'Explore técnicas avançadas de aprendizado de máquina para análise de dados'."},
     {"agente": "Engenharia_de_Dados", "descricao": "Técnicas e práticas para coleta, processamento e análise de dados em larga escala. Por exemplo, 'Aplique técnicas de engenharia de dados para análise de big data'."},
     {"agente": "Desenvolvimento_Web_Moderno", "descricao": "Princípios e ferramentas para desenvolvimento web moderno, incluindo frameworks populares. Por exemplo, 'Desenvolva websites responsivos com as melhores práticas de desenvolvimento web'."},
