@@ -190,5 +190,13 @@ st.sidebar.write("7. Se necessário, refine a resposta com base nas referências
 st.sidebar.write("8. Visualize a análise do especialista, a resposta original e a resposta refinada para avaliar a qualidade e precisão da resposta.")
 
 
-
+st.write("Chatbot:", response)
+st.image("eu.ico", width=100)
+st.write("""
+Projeto Geomaker + IA 
+- Professor: Marcelo Claro.
+Contatos: marceloclaro@gmail.com
+Whatsapp: (88)981587145
+Instagram: https://www.instagram.com/marceloclaro.geomaker/
+""")  
 
