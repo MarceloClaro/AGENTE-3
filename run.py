@@ -189,8 +189,8 @@ st.sidebar.write("6. Clique em 'Buscar Resposta' para obter a resposta inicial d
 st.sidebar.write("7. Se necessário, refine a resposta com base nas referências fornecidas. Clique em 'Refinar Resposta' para obter uma resposta mais aprimorada.")
 st.sidebar.write("8. Visualize a análise do especialista, a resposta original e a resposta refinada para avaliar a qualidade e precisão da resposta.")
 
-st.image("eu.ico", width=100)
-st.write("""
+st.sidebar.image("eu.ico", width=100)
+st.sidebar.write("""
 Projeto Geomaker + IA 
 - Professor: Marcelo Claro.
 Contatos: marceloclaro@gmail.com
