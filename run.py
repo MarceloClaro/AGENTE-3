@@ -111,10 +111,7 @@ def refine_response(expert_title: str, phase_two_response: str, user_input: str,
 
         # Adiciona um prompt mais detalhado se não houver referências
         if not references_file:
-            refine_prompt += (
-                "\n\n**Sem referências disponíveis.**\n\nComo especialista supremo no assunto, você deve fornecer uma resposta detalhada e precisa, sem a necessidade de referências externas. "
-                "Certifique-se de manter a coesão, coerência e sequência lógica em sua resposta, fornecendo informações completas e precisas sobre o tema em questão."
-            )
+            refine_prompt += "\n\nComo não há um arquivo de referências fornecido, certifique-se de fornecer uma resposta detalhada e precisa, mesmo sem o uso de fontes externas."
 
         refined_response = get_completion(refine_prompt)
         return refined_response
@@ -143,6 +140,8 @@ with col1:
     refine_clicked = st.button("Refinar Resposta")
     refresh_clicked = st.button("Atualizar")
 
+    references_file = st.file_uploader("Upload do arquivo JSON com referências (opcional)", type="json", key="arquivo_referencias")
+
 with col2:
     if 'resposta_assistente' not in st.session_state:
         st.session_state.resposta_assistente = ""
@@ -156,13 +155,15 @@ with col2:
     container_saida = st.container()
 
     if fetch_clicked:
+        if references_file is None:
+            st.warning("Não foi fornecido um arquivo de referências. Certifique-se de fornecer uma resposta detalhada e precisa, mesmo sem o uso de fontes externas.")
         st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente = fetch_assistant_response(user_input, model_name, temperature, agent_selection, groq_api_key)
         st.session_state.resposta_original = st.session_state.resposta_assistente
         st.session_state.resposta_refinada = ""
 
     if refine_clicked:
         if st.session_state.resposta_assistente:
-            st.session_state.resposta_refinada = refine_response(st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente, user_input, model_name, temperature, groq_api_key, None)
+            st.session_state.resposta_refinada = refine_response(st.session_state.descricao_especialista_ideal, st.session_state.resposta_assistente, user_input, model_name, temperature, groq_api_key, references_file)
         else:
             st.warning("Por favor, busque uma resposta antes de refinar.")
 
