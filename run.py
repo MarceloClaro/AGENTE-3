@@ -194,7 +194,9 @@ st.sidebar.write("""
 Projeto Geomaker + IA 
 - Professor: Marcelo Claro.
 Contatos: marceloclaro@gmail.com
+
 Whatsapp: (88)981587145
+
 Instagram: https://www.instagram.com/marceloclaro.geomaker/
 """)  
 
