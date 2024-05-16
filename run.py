@@ -188,8 +188,6 @@ st.sidebar.write("5. Faça o upload de um arquivo JSON com referências para a r
 st.sidebar.write("6. Clique em 'Buscar Resposta' para obter a resposta inicial do especialista com base na sua solicitação e nas configurações selecionadas.")
 st.sidebar.write("7. Se necessário, refine a resposta com base nas referências fornecidas. Clique em 'Refinar Resposta' para obter uma resposta mais aprimorada.")
 st.sidebar.write("8. Visualize a análise do especialista, a resposta original e a resposta refinada para avaliar a qualidade e precisão da resposta.")
-
-
 st.write("Chatbot:", response)
 st.image("eu.ico", width=100)
 st.write("""
