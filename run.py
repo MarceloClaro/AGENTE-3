@@ -187,5 +187,5 @@ st.sidebar.write("5. Faça o upload de um arquivo JSON com referências para a r
 st.sidebar.write("6. Clique em 'Buscar Resposta' para obter a resposta inicial.")
 st.sidebar.write("7. Se necessário, refine a resposta com base nas referências e clique em 'Refinar Resposta'.")
 st.sidebar.write("8. Visualize a análise do especialista, a resposta original e a resposta refinada.")
-if __name__ == "__main__":
+
 
