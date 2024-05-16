@@ -193,6 +193,7 @@ st.sidebar.image("eu.ico", width=100)
 st.sidebar.write("""
 Projeto Geomaker + IA 
 - Professor: Marcelo Claro.
+
 Contatos: marceloclaro@gmail.com
 
 Whatsapp: (88)981587145
