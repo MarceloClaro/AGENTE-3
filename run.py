@@ -177,16 +177,15 @@ if refresh_clicked:
     st.session_state.clear()
     st.experimental_rerun()
 
-    # Sidebar com manual de uso
-    st.sidebar.title("Manual de Uso")
-    st.sidebar.write("1. Digite sua solicitação na caixa de texto.")
-    st.sidebar.write("2. Escolha um especialista ou crie um novo.")
-    st.sidebar.write("3. Escolha um modelo de resposta.")
-    st.sidebar.write("4. Ajuste o nível de criatividade do modelo.")
-    st.sidebar.write("5. Faça o upload de um arquivo JSON com referências para a resposta.")
-    st.sidebar.write("6. Clique em 'Buscar Resposta' para obter a resposta inicial.")
-    st.sidebar.write("7. Se necessário, refine a resposta com base nas referências e clique em 'Refinar Resposta'.")
-    st.sidebar.write("8. Visualize a análise do especialista, a resposta original e a resposta refinada.")
-
+# Sidebar com manual de uso
+st.sidebar.title("Manual de Uso")
+st.sidebar.write("1. Digite sua solicitação na caixa de texto.")
+st.sidebar.write("2. Escolha um especialista ou crie um novo.")
+st.sidebar.write("3. Escolha um modelo de resposta.")
+st.sidebar.write("4. Ajuste o nível de criatividade do modelo.")
+st.sidebar.write("5. Faça o upload de um arquivo JSON com referências para a resposta.")
+st.sidebar.write("6. Clique em 'Buscar Resposta' para obter a resposta inicial.")
+st.sidebar.write("7. Se necessário, refine a resposta com base nas referências e clique em 'Refinar Resposta'.")
+st.sidebar.write("8. Visualize a análise do especialista, a resposta original e a resposta refinada.")
 if __name__ == "__main__":
     main()
