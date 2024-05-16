@@ -178,14 +178,17 @@ if refresh_clicked:
     st.experimental_rerun()
 
 # Sidebar com manual de uso
+
 st.sidebar.title("Manual de Uso")
-st.sidebar.write("1. Digite sua solicitação na caixa de texto.")
-st.sidebar.write("2. Escolha um especialista ou crie um novo.")
-st.sidebar.write("3. Escolha um modelo de resposta.")
-st.sidebar.write("4. Ajuste o nível de criatividade do modelo.")
-st.sidebar.write("5. Faça o upload de um arquivo JSON com referências para a resposta.")
-st.sidebar.write("6. Clique em 'Buscar Resposta' para obter a resposta inicial.")
-st.sidebar.write("7. Se necessário, refine a resposta com base nas referências e clique em 'Refinar Resposta'.")
-st.sidebar.write("8. Visualize a análise do especialista, a resposta original e a resposta refinada.")
+st.sidebar.write("1. Digite sua solicitação na caixa de texto. Isso será usado para solicitar uma resposta de um especialista.")
+st.sidebar.write("2. Escolha um especialista da lista ou crie um novo. Se você escolher 'Criar (ou escolher) um especialista...', você será solicitado a descrever as características do especialista.")
+st.sidebar.write("3. Escolha um modelo de resposta da lista. Cada modelo possui diferentes capacidades e complexidades.")
+st.sidebar.write("4. Ajuste o nível de criatividade do modelo com o controle deslizante. Um valor mais alto produzirá respostas mais criativas e menos previsíveis.")
+st.sidebar.write("5. Faça o upload de um arquivo JSON com referências para a resposta, se disponível. Isso ajudará o especialista a fornecer uma resposta mais fundamentada.")
+st.sidebar.write("6. Clique em 'Buscar Resposta' para obter a resposta inicial do especialista com base na sua solicitação e nas configurações selecionadas.")
+st.sidebar.write("7. Se necessário, refine a resposta com base nas referências fornecidas. Clique em 'Refinar Resposta' para obter uma resposta mais aprimorada.")
+st.sidebar.write("8. Visualize a análise do especialista, a resposta original e a resposta refinada para avaliar a qualidade e precisão da resposta.")
+
+
 
 
